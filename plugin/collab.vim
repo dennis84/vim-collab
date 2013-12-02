@@ -8,29 +8,36 @@ python << EOF
 
 import vim
 import json
+import uuid
 from ws4py.client.geventclient import WebSocketClient
 
 class CollabClient(WebSocketClient):
-    def opened(self):
-        vim.command('echo "opened"')
+  def opened(self):
+    print 'connecttion opened'
 
-    def closed(self, code, reason):
-        vim.command('echo "closed"')
+  def closed(self, code, reason):
+    print 'connection closed'
 
-    def received_message(self, m):
-        vim.command('echo "message"')
+  def received_message(self, m):
+    print 'received message'
 
-    def update(self):
-      self.send(json.dumps({
-        'name': 'foo',
-        'content': '\n'.join(vim.current.buffer[:]),
-        'room': 'foo'
-      }))
+  def update(self):
+    self.send(json.dumps({
+      'name': vim.current.buffer.name,
+      'content': '\n'.join(vim.current.buffer[:]),
+      'cursor_x': max(1, vim.current.window.cursor[1]),
+      'cursor_y': vim.current.window.cursor[0]
+    }))
+
+socket = None
 
 class CollabScope:
-    def connect(self, room=False):
-        socket.connect()
-        vim.command('autocmd CursorMoved * py socket.update()')
+  def connect(self, room=False):
+    if room == False:
+      room = str(uuid.uuid4()).split('-')[-1]
+    self.socket = CollabClient('ws://localhost:9000?room=' + room)
+    self.socket.connect()
+    vim.command('autocmd CursorMoved * py Collab.socket.update()')
+    print 'Joined room "' + room + '".'
 
-socket = CollabClient('ws://localhost:9000?room=foo')
 Collab = CollabScope()
