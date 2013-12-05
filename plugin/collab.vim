@@ -25,7 +25,7 @@ class CollabClient(WebSocketClient):
     self.send(json.dumps({
       'name': vim.current.buffer.name,
       'content': '\n'.join(vim.current.buffer[:]),
-      'cursor_x': max(1, vim.current.window.cursor[1]),
+      'cursor_x': vim.current.window.cursor[1] + 1,
       'cursor_y': vim.current.window.cursor[0]
     }))
 
