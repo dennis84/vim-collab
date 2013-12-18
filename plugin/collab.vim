@@ -35,7 +35,7 @@ class CollabScope:
   def connect(self, room=False):
     if room == False:
       room = str(uuid.uuid4()).split('-')[-1]
-    self.socket = CollabClient('ws://localhost:9000?room=' + room)
+    self.socket = CollabClient('wss://polar-woodland-4270.herokuapp.com/' + room)
     self.socket.connect()
     vim.command('autocmd CursorMoved * py Collab.socket.update()')
     print 'Joined room "' + room + '".'
