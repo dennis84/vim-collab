@@ -2,68 +2,70 @@ if !has('python')
   finish
 endif
 
-com! -nargs=* Collab py Collab.connect(<f-args>)
-com! -nargs=0 CollabClean py Collab.clean()
+com! -nargs=* Collab py Co.connect(<f-args>)
+com! -nargs=0 CollabDisconnect py Co.disconnect()
+
+au VimLeave * :CollabDisconnect
 
 python << EOF
 
 import vim
 import json
 import uuid
-from difflib import unified_diff
-from ws4py.client.geventclient import WebSocketClient
+import websocket
+import threading
 
-class CollabClient(WebSocketClient):
-  def __init__(self, *args, **kwargs):
-    self.current_buffer = self.makeBuffer(vim.current.buffer[:])
-    WebSocketClient.__init__(self, *args, **kwargs)
+class Connection(threading.Thread):
+  def __init__(self, ws):
+    threading.Thread.__init__(self)
+    self.ws = ws
 
-  def opened(self):
-    print 'connection opened'
+  def run(self):
+    self.ws.run_forever()
 
-  def closed(self, code, reason):
-    print 'connection closed'
+class Collab:
+  def __init__(self):
+    self.current_buffer = vim.current.buffer[:]
 
-  def received_message(self, m):
-    print 'received message'
+  def on_open(self, message):
+    print 'Joined: ' + self.room
 
-  def clean(self):
-    self.current_buffer = self.makeBuffer(vim.current.buffer[:])
-    self.sendMessage('clean', ''.join(self.current_buffer))
-
-  def update(self):
-    next_buffer = self.makeBuffer(vim.current.buffer[:])
-    if next_buffer != self.current_buffer:
-      diff = unified_diff(self.current_buffer, next_buffer)
-      content = ''.join(list(diff))
-      self.current_buffer = next_buffer
-      self.sendMessage('code', content)
-    else:
-      self.sendMessage('cursor', '')
-
-  def makeBuffer(self, buffer):
-    return map(lambda x: x + '\n', buffer)
-
-  def sendMessage(self, type, content):
-    self.send(json.dumps({
-      "t": type, "d": {
-        'name': vim.current.buffer.name,
-        'content': content,
-        'cursor_x': vim.current.window.cursor[1] + 1,
-        'cursor_y': vim.current.window.cursor[0]
-      }
-    }))
-
-class CollabScope:
   def connect(self, room=False):
     if room == False:
-      room = str(uuid.uuid4()).split('-')[-1]
-    self.socket = CollabClient('wss://polar-woodland-4270.herokuapp.com/' + room)
-    self.socket.connect()
-    vim.command('autocmd CursorMoved * py Collab.socket.update()')
-    print 'Joined room "' + room + '".'
+      self.room = str(uuid.uuid4()).split('-')[-1]
+    else:
+      self.room = room
 
-  def clean(self):
-    self.socket.clean()
+    self.ws = websocket.WebSocketApp(
+      'wss://polar-woodland-4270.herokuapp.com/' + self.room,
+      on_open = self.on_open)
 
-Collab = CollabScope()
+    self.co = Connection(self.ws)
+    self.co.start()
+
+    vim.command('autocmd CursorMoved * py Co.update()')
+    vim.command('autocmd CursorMovedI * py Co.update()')
+
+  def disconnect(self):
+    self.ws.close()
+
+  def update(self):
+    next_buffer = vim.current.buffer[:]
+    if next_buffer != self.current_buffer:
+      self.current_buffer = next_buffer
+      self._send_message('code', {
+        'name':   vim.current.buffer.name,
+        'buffer': '\n'.join(next_buffer)
+      })
+    self._send_cursor()
+
+  def _send_message(self, t, d):
+    self.ws.send(json.dumps({ 't': t, 'd': d }))
+
+  def _send_cursor(self):
+    self._send_message('cursor', {
+      'x': vim.current.window.cursor[1] + 1,
+      'y': vim.current.window.cursor[0]
+    })
+
+Co = Collab()
