@@ -54,8 +54,9 @@ class Collab:
     if next_buffer != self.current_buffer:
       self.current_buffer = next_buffer
       self._send_message('code', {
-        'name':   vim.current.buffer.name,
-        'buffer': '\n'.join(next_buffer)
+        'buffer': '\n'.join(next_buffer),
+        'path':   vim.eval('expand("%")'),
+        'lang':   vim.eval('&ft')
       })
     self._send_cursor()
 
