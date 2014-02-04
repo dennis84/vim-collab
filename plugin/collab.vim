@@ -2,7 +2,8 @@ if !has('python')
   finish
 endif
 
-com! -nargs=* Collab py Co.connect(<f-args>)
+com! -nargs=1 Collab py Co.connect(<f-args>)
+com! -nargs=1 CollabChangeUsername py Co.changeUsername(<f-args>)
 com! -nargs=0 CollabDisconnect py Co.disconnect()
 
 au VimLeave * :CollabDisconnect
@@ -27,7 +28,7 @@ class Collab:
   def __init__(self):
     self.current_buffer = vim.current.buffer[:]
 
-  def on_open(self, message):
+  def on_open(self, ws):
     print 'Joined: ' + self.room
 
   def connect(self, room=False):
@@ -48,6 +49,9 @@ class Collab:
 
   def disconnect(self):
     self.ws.close()
+
+  def changeUsername(self, name):
+    self._send_message('user', name)
 
   def update(self):
     next_buffer = vim.current.buffer[:]
