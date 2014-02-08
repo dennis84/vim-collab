@@ -51,7 +51,7 @@ class Collab:
     self.ws.close()
 
   def changeUsername(self, name):
-    self._send_message('user', name)
+    self._send_message('member', name)
 
   def update(self):
     next_buffer = vim.current.buffer[:]
