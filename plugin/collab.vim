@@ -27,9 +27,20 @@ class Connection(threading.Thread):
 class Collab:
   def __init__(self):
     self.current_buffer = vim.current.buffer[:]
+    self.connected = False
+
+  def is_connected(func):
+    def decorated(self, *args, **kwargs):
+      if self.connected:
+        func(self, *args, **kwargs)
+    return decorated
 
   def on_open(self, ws):
+    self.connected = True
     print 'Joined: ' + self.room
+
+  def on_error(self, ws, error):
+    self.disconnect()
 
   def connect(self, room=False):
     if room == False:
@@ -39,7 +50,8 @@ class Collab:
 
     self.ws = websocket.WebSocketApp(
       'wss://polar-woodland-4270.herokuapp.com/' + self.room,
-      on_open = self.on_open)
+      on_open = self.on_open,
+      on_error = self.on_error)
 
     self.co = Connection(self.ws)
     self.co.start()
@@ -48,7 +60,9 @@ class Collab:
     vim.command('autocmd CursorMovedI * py Co.update()')
 
   def disconnect(self):
+    self.connected = False
     self.ws.close()
+    self.co.close()
 
   def updateNick(self, name):
     self._send_message('update-nick', name)
@@ -64,6 +78,7 @@ class Collab:
       })
     self._send_cursor()
 
+  @is_connected
   def _send_message(self, t, d):
     self.ws.send(json.dumps({ 't': t, 'd': d }))
 
