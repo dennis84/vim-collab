@@ -2,7 +2,7 @@ if !has('python')
   finish
 endif
 
-com! -nargs=1 Collab py Co.connect(<f-args>)
+com! -nargs=* Collab py Co.connect(<f-args>)
 com! -nargs=1 CollabChangeNick py Co.updateNick(<f-args>)
 com! -nargs=0 CollabDisconnect py Co.disconnect()
 
