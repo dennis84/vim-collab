@@ -62,7 +62,6 @@ class Collab:
   def disconnect(self):
     self.connected = False
     self.ws.close()
-    self.co.close()
 
   def updateNick(self, name):
     self._send_message('update-nick', name)
@@ -73,7 +72,7 @@ class Collab:
       self.current_buffer = next_buffer
       self._send_message('code', {
         'buffer': '\n'.join(next_buffer),
-        'path':   vim.eval('expand("%")'),
+        'file':   vim.eval('expand("%")'),
         'lang':   vim.eval('&ft')
       })
     self._send_cursor()
@@ -84,6 +83,7 @@ class Collab:
 
   def _send_cursor(self):
     self._send_message('cursor', {
+      'file': vim.eval('expand("%")'),
       'x': vim.current.window.cursor[1] + 1,
       'y': vim.current.window.cursor[0]
     })
