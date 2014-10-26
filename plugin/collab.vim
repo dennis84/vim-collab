@@ -10,7 +10,10 @@ au VimLeave * :CollabDisconnect
 
 python << EOF
 
+import sys
 import vim
+sys.path.append(vim.eval("expand('<sfile>:p:h')") + '/../vendor/')
+
 import json
 import uuid
 import websocket
@@ -49,7 +52,7 @@ class Collab:
       self.room = room
 
     self.ws = websocket.WebSocketApp(
-      'wss://polar-woodland-4270.herokuapp.com/' + self.room,
+      'ws://radiant-dusk-8167.herokuapp.com/' + self.room,
       on_open = self.on_open,
       on_error = self.on_error)
 
@@ -64,22 +67,22 @@ class Collab:
     self.ws.close()
 
   def updateNick(self, name):
-    self._send_message('update-nick', name)
+    self._send_message('change-nick', {'name': name})
 
   def update(self):
     next_buffer = vim.current.buffer[:]
     if next_buffer != self.current_buffer:
       self.current_buffer = next_buffer
       self._send_message('code', {
-        'buffer': '\n'.join(next_buffer),
-        'file':   vim.eval('expand("%")'),
-        'lang':   vim.eval('&ft')
+        'content': '\n'.join(next_buffer),
+        'file':    vim.eval('expand("%")'),
+        'lang':    vim.eval('&ft')
       })
     self._send_cursor()
 
   @is_connected
   def _send_message(self, t, d):
-    self.ws.send(json.dumps({ 't': t, 'd': d }))
+    self.ws.send(t + json.dumps(d))
 
   def _send_cursor(self):
     self._send_message('cursor', {
