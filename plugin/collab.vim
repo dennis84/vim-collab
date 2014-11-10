@@ -45,14 +45,15 @@ class Collab:
   def on_error(self, ws, error):
     self.disconnect()
 
-  def connect(self, room=False):
+  def connect(self, room=False, url=False):
     if room == False:
-      self.room = str(uuid.uuid4()).split('-')[-1]
-    else:
-      self.room = room
+      room = str(uuid.uuid4())[:8]
+    if url == False:
+      url = 'radiant-dusk-8167.herokuapp.com'
 
+    self.room = room
     self.ws = websocket.WebSocketApp(
-      'ws://radiant-dusk-8167.herokuapp.com/' + self.room,
+      'ws://' + url + '/' + room,
       on_open = self.on_open,
       on_error = self.on_error)
 
