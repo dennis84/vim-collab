@@ -19,15 +19,19 @@ class Collab:
                 fn(self, *args, **kwargs)
         return decorated
 
-    def on_open(self, ws):
+    @is_connected
+    def _send_message(self, t, d):
+        self.ws.send(t + json.dumps(d))
+
+    def _on_open(self, ws):
         self.connected = True
         print 'Joined: ' + self.room
 
-    def on_error(self, ws, error):
+    def _on_error(self, ws, error):
         self.disconnect()
 
-    def on_message(self, ws, message):
-        evt, data, sender = parse_message(message)
+    def _on_message(self, ws, message):
+        evt, sender, data = parse_message(message)
         if evt == 'join':
             self.patching = False
 
@@ -36,14 +40,12 @@ class Collab:
             room = generate_id()
         if url == False:
             url = 'radiant-dusk-8167.herokuapp.com'
-
         self.room = room
         self.ws = websocket.WebSocketApp(
             'ws://' + url + '/' + room,
-            on_message = self.on_message,
-            on_open = self.on_open,
-            on_error = self.on_error)
-
+            on_message = self._on_message,
+            on_open = self._on_open,
+            on_error = self._on_error)
         self.co = Connection(self.ws)
         self.co.start()
 
@@ -58,24 +60,17 @@ class Collab:
     def update(self, buffer, file, lang):
         if buffer != self.current_buffer:
             content = buffer
-
             if True == self.patching and file == self.current_file:
                 diffs = self.dmp.patch_make(self.current_buffer, buffer)
                 content = self.dmp.patch_toText(diffs)
-
             self._send_message('code', {
                 'content': content,
                 'file':    file,
                 'lang':    lang
             })
-
             self.patching = True
             self.current_buffer = buffer
             self.current_file = file
 
     def update_cursor(self, x, y, file):
         self._send_message('cursor', {'x': x, 'y': y, 'file': file})
-
-    @is_connected
-    def _send_message(self, t, d):
-        self.ws.send(t + json.dumps(d))
