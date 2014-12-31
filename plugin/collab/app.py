@@ -36,6 +36,9 @@ class Collab:
             self.patching = False
 
     def connect(self, room=False, url=False):
+        if self.connected == True:
+            print "You're already connected"
+            return
         if room == False:
             room = generate_id()
         if url == False:
